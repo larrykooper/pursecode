@@ -12,16 +12,24 @@ class OrdersController < ApplicationController
   # POST /orders.json
   def create
     input = params[:input_string]
-    result = Order.parse_input(input)
-    @order = Order.new(order_params)
+    parsed = Order.parse_input(input)
+    if parsed[:result]
+      params[:order_number] = parsed[:order_number]
+      params[:delivery_date] = parsed[:delivery_date]
+      @order = Order.new(order_params)
+    end
 
     respond_to do |format|
-      if @order.save
-        format.html { redirect_to @order, notice: 'Order was successfully created.' }
-        format.json { render :show, status: :ok }
-      else
-        format.html { render :new }
-        format.json { render json: @order.errors, status: :unprocessable_entity }
+      if parsed[:result]
+        if @order.save
+          format.html { redirect_to @order, notice: 'Order was successfully created.' }
+          format.json { render :show, status: :ok }
+        else
+          format.html { render :new }
+          format.json { render json: @order.errors, status: :unprocessable_entity }
+        end
+      else  # parsing encountered error
+        format.json { render json: {error: "bad input"}, status: :unprocessable_entity }
       end
     end
   end
@@ -34,6 +42,6 @@ class OrdersController < ApplicationController
 
     # Only allow a list of trusted parameters through.
     def order_params
-       params.permit(:order_number, :delivery_date, :input_string)
+       params.permit(:order_number, :delivery_date)
     end
 end
